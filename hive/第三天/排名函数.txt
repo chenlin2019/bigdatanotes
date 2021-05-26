@@ -1,0 +1,74 @@
+一、排名函数
+			注意：排名函数可以跟Over()，但是不能定义window_clause.
+				  在计算名次前，需要先排序！
+RANK: 允许并列，一旦有并列跳号！ 
+ROW_NUMBER: 行号！ 连续的，每个号之间差1！
+DENSE_RANK： 允许并列，一旦有并列不跳号！
+CUME_DIST：  从排序后的第一行到当前值之间数据 占整个数据集的百分比！
+PERCENT_RANK：  rank-1/ 总数据量-1   
+NTILE(x):  将数据集均分到X个组中，返回每条记录所在的组号
+
+select  *,rank() over(order by score) ranknum,
+ROW_NUMBER() over(order by score) rnnum,
+DENSE_RANK() over(order by score) drnum,
+CUME_DIST() over(order by score) cdnum,
+PERCENT_RANK() over(order by score) prnum
+from score
+
+select  *,ntile(5) over()
+from score
+
+count      row_number        rank        dense_rank 
+ 3                  1		1	1
+ 3	     2		1	1
+ 2  	     3		3	2
+ 1	     4		4	3
+
+一般 rk<=3         
+二、练习
+ score.name  | score.subject  | score.score
+// 按照科目进行排名
+
+select *,rank() over(partition by subject order by score desc)
+from score
+
+// 给每个学生的总分进行排名
+// 输出4条记录
+select name,sumscore,rank()  over( order by sumscore desc)
+from
+(select name,sum(score) sumscore
+from  score
+group by  name) tmp
+
+// 求每个学生的成绩明细及给每个学生的总分和总分排名
+
+select *,DENSE_RANK() over(order by tmp.sumscore desc)
+from
+(select *,sum(score) over(partition by name)  sumscore
+from score) tmp
+
+
+// 只查询每个科目的成绩的前2名
+select *
+from
+(select *,rank() over(partition by subject order by score desc) rn
+from score) tmp
+where rn<=2
+
+//查询学生成绩明细，并显示当前科目最高分
+select *,max(score) over(partition by subject)
+from score
+
+或
+select *,FIRST_VALUE(score) over(partition by subject order by score desc)
+from score
+
+
+
+//查询学生成绩，并显示当前科目最低分
+select *,min(score) over(partition by subject)
+from score
+
+或
+select *,FIRST_VALUE(score) over(partition by subject order by score )
+from score
